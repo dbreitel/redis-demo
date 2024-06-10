@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-demo
+  namespace: redis-demo
+  labels:
+    app: redis-demo
+    app.component: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-demo
+  template:
+    metadata:
+      labels:
+        app: redis-demo
+        app.component: redis
+      name: redis
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: redis
+        image: diegob/redis-demo:1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6379
+          protocol: TCP
+        - containerPort: 8001
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-demo
+  namespace: redis-demo
+  labels:
+    app: redis-demo
+spec:      
+  ports:
+    - port: 6379
+      protocol: TCP
+      targetPort: 6379
+      name: redis-port
+    - port: 8001
+      protocol: TCP
+      targetPort: 8001
+      name: redinsight
+  selector:
+    app.component: redis
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-client
+  namespace: redis-demo
+  labels:
+    app: redis-client
+    app.component: redis-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-client
+  template:
+    metadata:
+      labels:
+        app: redis-client
+        app.component: redis-client
+      name: redis-client
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: redis-client
+        image: diegob/redis-client:1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8081
+          protocol: TCP
+        lifecycle:
+          postStart: 
+            exec: 
+              command: ["npm", "run", "load", "all"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-client
+  namespace: redis-demo
+  labels:
+    app: redis-client
+spec:      
+  ports:
+    - port: 8081
+      protocol: TCP
+      targetPort: 8081
+  selector:
+    app.component: redis-client
+  type: ClusterIP
